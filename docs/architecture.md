@@ -82,3 +82,38 @@ When a module changes how the app fits together, add a section here:
 **Risks and open questions:** cost, privacy, accuracy or safety risks, and how
 you handle them.
 ```
+
+## Module 2: Ask Copper
+
+**Summary:** a floating chat panel that answers price, cost and stock questions
+by calling four read-only tools instead of guessing, and shows each step
+(thinking, tool calls, reply) as it streams in. A tools-off chat answers the
+same questions from memory, for comparison.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Page / route | `app/page.tsx` | Still the only page. Mounts `<AskCopper aiConfigured={isAiConfigured()} />`; no new routes |
+| Components | `components/copper/ask-copper.tsx`, `components/copper/tool-card.tsx` | The launcher, the Sheet panel with its two chats, the answer stations and the always-open tool card. The header gains an **Ask Copper** link to `#ask` |
+| Tools | `lib/copper/assistant/tools.ts` | `get_products`, `get_prices`, `calculate_cost`, `check_availability`, with zod input contracts. Prices come from the catalog; stock is read with `readInventory()` on every call |
+| Instructions | `lib/copper/assistant/instructions.ts` | `COPPER_INSTRUCTIONS`, the system prompt, sent only with tools on |
+| Server Action | `lib/copper/assistant/ask.ts` | `askCopper({ messages, useTools })` returns a live `Progress` straight away and fills it in from `result.fullStream` |
+| Data | `lib/copper/data/inventory.json` | The stock list, read through `lib/copper/inventory.ts` |
+| AI calls | `callStream` in `lib/ai/call.ts` (module 2, `ask-copper`) | The default Gemini model with thought summaries; up to 5 steps with tools on. Well under a cent per question |
+
+**Data flow:** the shopper asks a question → the panel calls the `askCopper`
+Server Action with that chat's history → `callStream` sends it to Gemini (with
+instructions and tools, or with neither) → each tool runs in our code and its
+result goes back to the model → every stream part updates the `Progress`,
+which the panel reads with `readLive()` and redraws.
+
+**Decisions and trade-offs:** a Server Action instead of an API route keeps the
+site to one page. Each update is a fresh copy of the whole `Progress`, so a
+missed update loses nothing and earlier ones never change. Tools on and off are
+separate chats, so the tools-off model can't copy an answer the tools worked
+out.
+
+**Risks and open questions:** the tools only read, so the model can't buy or
+change anything. The request is validated with zod, since anyone can call a
+Server Action. With tools off, answers may be made up; the panel labels them
+"Answered without tools". There's no rate limiting yet, so a busy public site
+could run up AI cost.
