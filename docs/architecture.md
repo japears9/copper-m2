@@ -100,7 +100,7 @@ same questions from memory, for comparison.
 | Tools | `lib/copper/assistant/tools.ts` | `get_products`, `get_prices`, `calculate_cost`, `check_availability`, with zod input contracts. Prices come from the catalog; stock is read with `readInventory()` on every call |
 | Instructions | `lib/copper/assistant/instructions.ts` | `COPPER_INSTRUCTIONS`, the system prompt, sent only with tools on |
 | Server Action | `lib/copper/assistant/ask.ts` | `askCopper({ messages, useTools })` returns a live `Progress` straight away and fills it in from `result.fullStream` |
-| Data | `lib/copper/data/inventory.json` | The stock list, read through `lib/copper/inventory.ts` |
+| Data | Supabase `inventory` table | The stock list, read through `lib/copper/inventory.ts` |
 | AI calls | `callStream` in `lib/ai/call.ts` (module 2, `ask-copper`) | The default Gemini model with thought summaries; up to 5 steps with tools on. Well under a cent per question |
 
 **Data flow:** the shopper asks a question → the panel calls the `askCopper`
